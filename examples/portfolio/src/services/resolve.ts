@@ -123,8 +123,9 @@ const createTokenStandardService = async ({
 }: {
     logger: Logger
 }): Promise<TokenStandardService> => {
-    if (window.canton && window.canton !== undefined) {
+    if (window.canton) {
         const provider = window.canton as unknown as LedgerProvider
+
         const tokenStandardService = new TokenStandardService(
             provider,
             logger,
