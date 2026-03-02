@@ -63,12 +63,10 @@ export class LedgerProvider extends AbstractProvider<LedgerTypes> {
                     .body as Ops.PostV2StateActiveContracts['ledgerApi']['params']['body']
                 const queryParams = args.params
                     .query as Ops.PostV2StateActiveContracts['ledgerApi']['params']['query']
-
                 const convertedParams = this.convert(
                     bodyParams,
                     queryParams.limit
                 )
-
                 return await this.client.activeContracts(convertedParams)
             }
 
@@ -157,7 +155,6 @@ export class LedgerProvider extends AbstractProvider<LedgerTypes> {
                 : {}),
             ...(parties.size > 0 ? { parties: [...parties] } : {}),
             ...(limit !== undefined ? { limit } : {}),
-            continueUntilCompletion: true,
         }
     }
 
