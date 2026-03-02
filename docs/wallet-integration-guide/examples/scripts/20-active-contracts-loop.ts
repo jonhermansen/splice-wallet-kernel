@@ -10,6 +10,9 @@ import {
 import { pino } from 'pino'
 import { v4 } from 'uuid'
 
+//TODO: re-enable this test once we pull out ACS functionality into a AcsReader class
+// currently, continueUntilCompletion does not work the way we expect with LedgerProvider activeContracts endpoint
+
 const logger = pino({ name: '20-active-contracts-loop', level: 'info' })
 
 const sdk = new WalletSDKImpl().configure({
@@ -173,69 +176,68 @@ for (let trades = 0; trades < BOB_SPEND_UTXOS; trades++) {
     )
 }
 
-//TODO
-// const testExistingUtxos = async (
-//     partyId: PartyId,
-//     expectedUtxosCount: number,
-//     limit = 200,
-//     continueUntilCompletion?: boolean
-// ) => {
-//     await sdk.setPartyId(partyId)
-//     const utxos = await sdk.tokenStandard?.listHoldingUtxos(
-//         true,
-//         limit,
-//         undefined,
-//         undefined,
-//         continueUntilCompletion
-//     ) // 200 is the http-list-max-elements-limit default
-//     logger.info(`number of unlocked utxos for ${partyId}: ${utxos?.length}`)
+const testExistingUtxos = async (
+    partyId: PartyId,
+    expectedUtxosCount: number,
+    limit = 200,
+    continueUntilCompletion?: boolean
+) => {
+    await sdk.setPartyId(partyId)
+    const utxos = await sdk.tokenStandard?.listHoldingUtxos(
+        true,
+        limit,
+        undefined,
+        undefined,
+        continueUntilCompletion
+    ) // 200 is the http-list-max-elements-limit default
+    logger.info(`number of unlocked utxos for ${partyId}: ${utxos?.length}`)
 
-//     logger.info({
-//         expectedUtxosCount,
-//         actualUtxosCount: utxos?.length,
-//     })
+    logger.info({
+        expectedUtxosCount,
+        actualUtxosCount: utxos?.length,
+    })
 
-//     if (utxos?.length !== expectedUtxosCount) {
-//         throw new Error(
-//             `Expected ${expectedUtxosCount} UTXOs, but found ${utxos?.length}`
-//         )
-//     }
-// }
+    if (utxos?.length !== expectedUtxosCount) {
+        throw new Error(
+            `Expected ${expectedUtxosCount} UTXOs, but found ${utxos?.length}`
+        )
+    }
+}
 
-// const httpElementLimit = 200
-// //check if continueUntilCompletion fetches items above httpElementLimit
-// await testExistingUtxos(
-//     sender!.partyId,
-//     ALICE_UTXOS - ALICE_SPEND_UTXOS + BOB_SPEND_UTXOS,
-//     httpElementLimit,
-//     true
-// )
+const httpElementLimit = 200
+//check if continueUntilCompletion fetches items above httpElementLimit
+await testExistingUtxos(
+    sender!.partyId,
+    ALICE_UTXOS - ALICE_SPEND_UTXOS + BOB_SPEND_UTXOS,
+    httpElementLimit,
+    true
+)
 
-// //check if limit parameter works and does not fetch above httpElementLimit
-// await testExistingUtxos(
-//     sender!.partyId,
-//     Math.min(ALICE_UTXOS, httpElementLimit),
-//     httpElementLimit,
-//     false
-// )
-// //check if limit parameter works if it is different from ledger
-// await testExistingUtxos(
-//     sender!.partyId,
-//     Math.min(ALICE_UTXOS, httpElementLimit / 2),
-//     httpElementLimit / 2,
-//     false
-// )
-// //check if continueUntilCompletion works if item count is less than httpElementLimit
-// await testExistingUtxos(
-//     receiver!.partyId,
-//     Math.min(ALICE_SPEND_UTXOS - BOB_SPEND_UTXOS, httpElementLimit),
-//     httpElementLimit,
-//     true
-// )
-// // check if limit parmeter works if item count is less than httpElementLimit
-// await testExistingUtxos(
-//     receiver!.partyId,
-//     Math.min(ALICE_SPEND_UTXOS - BOB_SPEND_UTXOS, httpElementLimit),
-//     httpElementLimit,
-//     false
-// )
+//check if limit parameter works and does not fetch above httpElementLimit
+await testExistingUtxos(
+    sender!.partyId,
+    Math.min(ALICE_UTXOS, httpElementLimit),
+    httpElementLimit,
+    false
+)
+//check if limit parameter works if it is different from ledger
+await testExistingUtxos(
+    sender!.partyId,
+    Math.min(ALICE_UTXOS, httpElementLimit / 2),
+    httpElementLimit / 2,
+    false
+)
+//check if continueUntilCompletion works if item count is less than httpElementLimit
+await testExistingUtxos(
+    receiver!.partyId,
+    Math.min(ALICE_SPEND_UTXOS - BOB_SPEND_UTXOS, httpElementLimit),
+    httpElementLimit,
+    true
+)
+// check if limit parmeter works if item count is less than httpElementLimit
+await testExistingUtxos(
+    receiver!.partyId,
+    Math.min(ALICE_SPEND_UTXOS - BOB_SPEND_UTXOS, httpElementLimit),
+    httpElementLimit,
+    false
+)
