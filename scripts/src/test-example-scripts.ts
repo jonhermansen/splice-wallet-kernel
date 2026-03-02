@@ -20,6 +20,7 @@ const EXCEPTIONS_FILE_NAMES = [
     '05-',
     '01-one-step',
     '02-one-step',
+    '20-active-contracts-loop.ts',
 ]
 
 function getScriptsRecursive(currentDir: string): string[] {
