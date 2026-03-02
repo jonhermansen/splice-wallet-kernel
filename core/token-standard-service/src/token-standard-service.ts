@@ -229,6 +229,41 @@ export class CoreService {
         return cIds
     }
 
+    //TODO: remove this once we extend provider types
+    private convertToActiveContractsRequest(
+        interfaceId: string,
+        partyId: PartyId,
+        offset: number
+    ): Ops.PostV2StateActiveContracts['ledgerApi']['params']['body'] {
+        const filters: v3_4.components['schemas']['Filters'] = {
+            cumulative: [
+                {
+                    identifierFilter: {
+                        InterfaceFilter: {
+                            value: {
+                                interfaceId: interfaceId,
+                                includeInterfaceView: true,
+                                includeCreatedEventBlob: true,
+                            },
+                        },
+                    },
+                },
+            ],
+        }
+
+        const filtersByParty = {
+            [partyId]: filters,
+        } as v3_4.components['schemas']['Map_Filters']
+
+        return {
+            activeAtOffset: offset,
+            verbose: true,
+            filter: {
+                filtersByParty: filtersByParty,
+            },
+        }
+    }
+
     async listContractsByInterface<T = ViewValue>(
         interfaceId: string,
         partyId?: PartyId,
@@ -249,20 +284,46 @@ export class CoreService {
                     })
                 ).offset
 
-            const options: Parameters<typeof this.ledgerProvider.acs>[0] = {
-                offset: ledgerEnd,
-                interfaceIds: [interfaceId],
-                parties: [partyId!],
-                filterByParty: true,
-                continueUntilCompletion: Boolean(continueUntilCompletion),
-            }
+            const body = this.convertToActiveContractsRequest(
+                interfaceId,
+                partyId!,
+                ledgerEnd
+            )
 
-            if (limit !== undefined) {
-                options.limit = limit
-            }
-
+            //TODO: based on the. provider design we can't pass in the continue to completion, so right now it's defaulted to true in the ledger provider. we need to figure out how to add an ACS functionality and ensure better composability
+            this.logger.info(
+                `continue to completion ${continueUntilCompletion}`
+            )
             const acsResponses: JsGetActiveContractsResponse[] =
-                await this.ledgerProvider.acs(options)
+                limit !== undefined && limit > 0
+                    ? await this.ledgerProvider.request<Ops.PostV2StateActiveContracts>(
+                          {
+                              method: 'ledgerApi',
+                              params: {
+                                  resource: '/v2/state/active-contracts',
+                                  requestMethod: 'post',
+                                  body: body,
+                                  query: {
+                                      limit,
+                                      stream_idle_timeout_ms: 5000,
+                                  },
+                              },
+                          }
+                      )
+                    : await this.ledgerProvider.request<Ops.PostV2StateActiveContracts>(
+                          {
+                              method: 'ledgerApi',
+                              params: {
+                                  resource: '/v2/state/active-contracts',
+                                  requestMethod: 'post',
+                                  body: body,
+                                  query: {},
+                              },
+                          }
+                      )
+
+            // const acsResponses: JsGetActiveContractsResponse[] =
+            //     await this.ledgerProvider.acs(options)
 
             /*  This filters out responses with entries of:
                 - JsEmpty
