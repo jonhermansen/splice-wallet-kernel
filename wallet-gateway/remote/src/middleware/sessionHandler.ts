@@ -20,7 +20,17 @@ export function sessionHandler(
 ) {
     return async (req: Request, res: Response, next: NextFunction) => {
         const context = req.authContext
-        const allowedMethods = allowedPaths[req.baseUrl as string]
+
+        // Use baseUrl + path instead of just baseUrl to determine the full route.
+        // The middleware is mounted with app.use('/api/*splat', ...) in init.ts.
+        // In path-to-regexp 8.4.0 (https://github.com/pillarjs/path-to-regexp/commit/43669ac),
+        // "Dedupe regex prefixes (#422)" changed how wildcard splat patterns split
+        // req.baseUrl and req.path:
+        //   8.3.0: baseUrl="/api/v0/dapp"  path="/"
+        //   8.4.0: baseUrl="/api/v0"       path="/dapp"
+        // Using baseUrl + path is stable across both versions.
+        const requestPath = (req.baseUrl + req.path).replace(/\/$/, '')
+        const allowedMethods = allowedPaths[requestPath]
 
         if (req.method !== 'POST') {
             logger.debug(
